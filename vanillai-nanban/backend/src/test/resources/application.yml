@@ -1,0 +1,8 @@
+nanban:
+  jwt:
+    secret: test-secret-test-secret-test-secret-test-secret
+  admin-emails: admin@example.com
+  chat:
+    api-key: ""            # tests must never call a real LLM
+  weather:
+    collect-interval-ms: 86400000

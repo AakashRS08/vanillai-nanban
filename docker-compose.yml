@@ -1,0 +1,43 @@
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: nanban
+      MYSQL_USER: nanban
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ml:
+    build: ./ml-service
+    # not published: only the backend talks to it
+
+  backend:
+    build: ./backend
+    depends_on:
+      db: { condition: service_healthy }
+      ml: { condition: service_started }
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      DB_HOST: db
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      NANBAN_ML_URL: http://ml:8000
+      NANBAN_JWT_SECRET: ${NANBAN_JWT_SECRET:?set NANBAN_JWT_SECRET (32+ chars) in .env}
+      NANBAN_ADMIN_EMAILS: ${NANBAN_ADMIN_EMAILS:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      NANBAN_CORS_ORIGINS: http://localhost:3000
+
+  frontend:
+    build: ./frontend
+    depends_on: [backend]
+    ports:
+      - "3000:80"
+
+volumes:
+  dbdata:
